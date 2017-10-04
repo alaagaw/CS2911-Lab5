@@ -133,9 +133,9 @@ def tcp_receive(listen_port):
     # print(data)
     numline = read_header(data_socket)
     # print(numline)
-    message = read_message(numline, data_socket)
+    message = read_message(numline, data_socket).decode('ascii')        #Had to decode the message read since it put out a bytes object
     # print(message)
-    # write_to_File(message)
+    write_to_file(message)
     data_socket.send(b'A')
     # data_socket.close()
     # listen_socket.close()
@@ -156,9 +156,7 @@ def read_header(data_socket):
     num = 0
     allread = b''
     while num < 4:
-        #currRead = data_socket.recv(1)
         currRead = next_byte(data_socket)
-        # currRead = data
         # print(currRead)
         num += 1
         allread = allread + currRead
@@ -185,7 +183,7 @@ def read_message(numline, data_socket):
     return msghave
 
 
-def write_to_File(message):
+def write_to_file(message):
     """
     This method writes the payload of the received message to a text file
 
@@ -194,7 +192,7 @@ def write_to_File(message):
     """
 
     output_file = open('lab4.txt', 'w+')
-    output_file.write(message.encode('utf-8'))
+    output_file.write(message)
     output_file.close()
 
 
@@ -218,9 +216,3 @@ def next_byte(data_socket):
 
 # Invoke the main method to run the program.
 main()
-
-
-
-
-
-
