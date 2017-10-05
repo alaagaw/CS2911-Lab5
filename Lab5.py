@@ -1,11 +1,10 @@
 """
-{{MODIFIED - MAY BREAK}}
-- CS2911 - 0NN
+- CS2911 - 011
 - Fall 2017
-- Lab N
+- Lab 5
 - Names:
- -
- -
+  - Alex Sotelo
+  - Alaa Gaw
 
 A simple TCP server/client pair.
 
@@ -26,7 +25,7 @@ import sys
 
 # Port number definitions
 # (May have to be adjusted if they collide with ports in use by other programs/services.)
-TCP_PORT = 12100
+TCP_PORT = 12222
 
 # Address to listen on when acting as server.
 # The address '' means accept any connection for our 'receive' port from any network interface
@@ -64,18 +63,19 @@ def tcp_send(server_host, server_port):
 
     :param str server_host: name of the server host machine
     :param int server_port: port number on server to send to
+    :authors: Alaa Gaw
     """
     print('tcp_send: dst_host="{0}", dst_port={1}'.format(server_host, server_port))
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.connect((server_host, server_port))
 
-    num_lines = int(input('Enter the number of lines you want to send (0 to exit):'))
-
-    while num_lines != 0:
+    while (1):  # Changed to send data multiple times
+        num_lines = int(input('Enter the number of lines you want to send (0 to exit):'))
         tcp_socket.sendall(b'\x00\x00')
         time.sleep(1)
         tcp_socket.sendall(b'\x00' + bytes((num_lines,)))
         print('Now enter all the lines of your message')
+
         # This client code does not completely conform to the specification.
         #
         # In it, I only pack one byte of the range, limiting the number of lines this
@@ -93,23 +93,16 @@ def tcp_send(server_host, server_port):
 
         print('Done sending. Awaiting reply.')
         response = tcp_socket.recv(1)
+        print(response)
         if response == b'A':  # Note: == in Python is like .equals in Java
             print('File accepted.')
+        elif response == b'Q':  # Reminder: == in Python is like .equals in Java
+            # If response is Q then connection should be terminated.
+            print('Server closing connection, as expected.')
+            tcp_socket.close()
+            break;
         else:
             print('Unexpected response:', response)
-
-        num_lines = int(input('Enter the number of lines you want to send (0 to exit):'))
-
-    tcp_socket.sendall(b'\x00\x00')
-    time.sleep(1)  # Just to mess with your servers. :-)  Your code should work with this line here.
-    tcp_socket.sendall(b'\x00\x00')
-    response = tcp_socket.recv(1)
-    if response == b'Q':  # Reminder: == in Python is like .equals in Java
-        print('Server closing connection, as expected.')
-    else:
-        print('Unexpected response:', response)
-
-    tcp_socket.close()
 
 
 def tcp_receive(listen_port):
@@ -124,27 +117,28 @@ def tcp_receive(listen_port):
     - Close data connection.
 
     :param int listen_port: Port number on the server to listen on
+    :authors: Alaa Gaw
+              Alex Sotelo
     """
     listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listen_socket.bind((LISTEN_ON_INTERFACE, listen_port))
     listen_socket.listen(1)  # Num of conn. to accept
     data_socket, sender_address = listen_socket.accept()
-    # print(data_socket)
-    # print(data)
-    numline = read_header(data_socket)
-    # print(numline)
-    message = read_message(numline, data_socket).decode('ascii')        #Had to decode the message read since it put out a bytes object
-    # print(message)
-    write_to_file(message)
-    data_socket.send(b'A')
-    # data_socket.close()
-    # listen_socket.close()
+    file_number = 0
 
     print('tcp_receive (server): listen_port={0}'.format(listen_port))
-    # Replace this comment with your code.
+    numline = read_header(data_socket)
+    while (numline):  # Loop until number of lines received is 0
+        file_text = ""
+        message = read_message(numline, data_socket)
+        file_text += str(message.decode())  # Creating a string to be saved to file
+        data_socket.send(b'A') # Send b'A' if the upload is accepted
+        numline = read_header(data_socket)
+        file_number = file_number +1
+        write_to_File(file_text,file_number)  # Writing the final string to file
+    if numline == 0:
+        data_socket.send(b'Q')  # Send b'Q' if received 0 as number of lines, terminate connection
 
-
-# Add more methods here (Delete this line)
 def read_header(data_socket):
     """
     This method reads the header only from the actual received message
@@ -157,10 +151,8 @@ def read_header(data_socket):
     allread = b''
     while num < 4:
         currRead = next_byte(data_socket)
-        # print(currRead)
         num += 1
         allread = allread + currRead
-        print(allread)
     return int.from_bytes(allread, 'big')
 
 
@@ -183,16 +175,16 @@ def read_message(numline, data_socket):
     return msghave
 
 
-def write_to_file(message):
+def write_to_File(message,file_number):
     """
-    This method writes the payload of the received message to a text file
+    This method writes the payload of the received messages to text files
 
     :param str message: String object that are read from the actual message
     :author: Alaa Gaw
     """
-
-    output_file = open('lab4.txt', 'w+')
-    output_file.write(message)
+    file_name = str(file_number) + ".txt"
+    output_file = open(file_name, 'w+')
+    output_file.write(str(message))
     output_file.close()
 
 
@@ -216,3 +208,7 @@ def next_byte(data_socket):
 
 # Invoke the main method to run the program.
 main()
+
+
+
+
